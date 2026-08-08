@@ -8,6 +8,48 @@ from scipy.interpolate import RegularGridInterpolator
 def load_config(config_path="config.yaml"):
     with open(config_path, "r") as file:
         return yaml.safe_load(file)
+
+OZONE_COEFFS = {
+
+    3: 0.002,   # 442.5 nm
+    4: 0.021,   # 490 nm
+    5: 0.043,   # 510 nm
+    6: 0.105,   # 560 nm
+    7: 0.115,   # 620 nm
+    8: 0.052,   # 665 nm
+    9: 0.043,   # 673.75 nm
+    10: 0.035,  # 681.25 nm
+    11: 0.020,  # 708.75 nm
+    12: 0.009,  # 753.75 nm
+    13: 0.007,  # 761.25 nm
+    14: 0.008,  # 764.375 nm
+    15: 0.008,  # 767.5 nm
+    16: 0.006,  # 778.75 nm
+}
+
+def get_o3_trans(high_res_sza, high_res_oza, high_res_ozone, band_num):
+    """
+    Calculates the two-way ozone transmittance T_O3.
+    """
+    #Convert angles to radians
+    sza_rad = np.radians(high_res_sza)
+    oza_rad = np.radians(high_res_oza)
+    
+    # Calculate two-way Air Mass (M)
+    cos_sza = np.clip(np.cos(sza_rad), 1e-5, 1.0)
+    cos_oza = np.clip(np.cos(oza_rad), 1e-5, 1.0)
+    air_mass = (1.0 / cos_sza) + (1.0 / cos_oza)
+    
+    # Convert ozone from kg/m^2 to atm-cm
+    ozone_atm_cm = high_res_ozone * 46.696
+    
+    # Get the absorption coefficient for this band
+    k_o3 = OZONE_COEFFS.get(band_num, 0.0)
+    
+    # Calculate Transmittance
+    t_o3 = np.exp(-k_o3 * ozone_atm_cm * air_mass)
+    
+    return t_o3
     
 def generate_rayleigh(meteo_path, geom_path, target_wavelength_nm):
     """
@@ -159,7 +201,7 @@ def get_earth_sun_correction(folder_path_name):
     
     return u_factor
 
-def apply_rayleigh_correction(radiance_path, high_res_rayleigh, high_res_sza, solar_flux):
+def apply_rayleigh_correction(radiance_path, high_res_rayleigh, high_res_sza, solar_flux,t_o3):
     """
     Converts Radiance to Reflectance, then subtracts the Rayleigh signal.
     """
@@ -172,9 +214,12 @@ def apply_rayleigh_correction(radiance_path, high_res_rayleigh, high_res_sza, so
     sza_rad = np.radians(high_res_sza)
     
     rho_toa = (np.pi * L_toa) / (solar_flux * np.cos(sza_rad))
+
+    # Apply Ozone Transmittance Correction
+    rho_toa_gas_corrected = rho_toa / t_o3
     
     # Calculate correction
-    rayleigh_corrected_reflectance = rho_toa - high_res_rayleigh
+    rayleigh_corrected_reflectance = rho_toa_gas_corrected - high_res_rayleigh
     
     # Clip negative values
     rayleigh_corrected_reflectance = rayleigh_corrected_reflectance.clip(min=0)
@@ -245,6 +290,7 @@ def main():
     sza_high_res = upscale_tie_variable(geom_file, 'SZA', reference_file)
 
     oza_high_res = upscale_tie_variable(geom_file, 'OZA', reference_file)
+    ozone_high_res = upscale_tie_variable(meteo_file, 'total_ozone', reference_file)
 
     u_factor = get_earth_sun_correction(folder_path)
 
@@ -259,8 +305,10 @@ def main():
         rayleigh_ds = generate_rayleigh(meteo_file, geom_file, props['wl'])
         high_res_rayleigh = upscale_rayleigh(rayleigh_ds, radiance_path)
 
+        band_num = int(band_key.split('_')[1])
+        t_o3 = get_o3_trans(sza_high_res, oza_high_res, ozone_high_res, band_num)
 
-        corrected_image = apply_rayleigh_correction(radiance_path, high_res_rayleigh, sza_high_res, adjusted_e0)
+        corrected_image = apply_rayleigh_correction(radiance_path, high_res_rayleigh, sza_high_res, adjusted_e0,t_o3)
         corrected_arrays[band_key] = corrected_image.values
 
     # Processing
