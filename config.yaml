@@ -1,0 +1,15 @@
+input:
+  folder_path: "./S3B_OL_1_EFR____20260806T134948_20260806T135248_20260806T153247_0179_123_124_2880_ESA_O_NR_004.SEN3"
+
+processing:
+  # Modes: 'rgb', 'aerosol_rgb', 'ndvi'
+  mode: "ndvi"
+  
+  # The user defines the exact bands for Red, Green, and Blue here!
+  # True Color: [7, 6, 4]
+  # False Color (Vegetation): [17, 6, 3]
+  rgb_bands: [7, 6, 4] 
+  
+visualization:
+  gamma: 1.5
+  ndvi_cmap: "RdYlGn"
