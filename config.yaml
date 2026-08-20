@@ -1,15 +1,17 @@
 input:
-  folder_path: "./S3B_OL_1_EFR____20260806T134948_20260806T135248_20260806T153247_0179_123_124_2880_ESA_O_NR_004.SEN3"
+  folder_path: "S3B_OL_1_EFR____20260806T134948_20260806T135248_20260806T153247_0179_123_124_2880_ESA_O_NR_004.SEN3"
 
 processing:
-  # Modes: 'rgb', 'aerosol_rgb', 'ndvi'
-  mode: "ndvi"
+  mode: "rgb"  # Options: 'raw_rgb', 'rgb', 'aerosol_rgb', 'ndvi'
+  rgb_bands: [7, 6, 4] # Corresponds to OLCI 620nm, 560nm, 490nm
   
-  # The user defines the exact bands for Red, Green, and Blue here!
-  # True Color: [7, 6, 4]
-  # False Color (Vegetation): [17, 6, 3]
-  rgb_bands: [7, 6, 4] 
-  
+  cloud_masking:
+    enabled: true
+    brightness_threshold: 0.5
+    ndvi_cloud_min: -0.05
+    ndvi_cloud_max: 0.15
+
 visualization:
+  generate_plot: true
   gamma: 1.5
   ndvi_cmap: "RdYlGn"
