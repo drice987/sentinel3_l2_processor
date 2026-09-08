@@ -87,9 +87,14 @@ def export_netcdf(
     output_path: Path,
     target_bands: list[int],
     corrected_arrays: dict[str, np.ndarray],
+    latitudes: np.ndarray | None = None,
+    longitudes: np.ndarray | None = None,
     ndvi_array: np.ndarray | None = None,
 ) -> None:
-    """Export processed surface reflectance products to a NetCDF file.
+    """Export processed surface reflectance products adhering to CF conventions.
+
+    Writes calibrated surface reflectance or computed index grids to a compressed
+    NetCDF-4 file, embedding spatial coordinates and standard CF-1.8 attributes.
 
     Args:
         mode (str): Processing mode ('ndvi', 'rgb', or 'aerosol_rgb').
@@ -97,6 +102,10 @@ def export_netcdf(
         target_bands (list[int]): List of band numbers included in the product.
         corrected_arrays (dict[str, np.ndarray]): Dictionary mapping band names to
             corrected surface reflectance arrays.
+        latitudes (np.ndarray | None, optional): 2D array of pixel latitude
+            coordinates in degrees north. Defaults to None.
+        longitudes (np.ndarray | None, optional): 2D array of pixel longitude
+            coordinates in degrees east. Defaults to None.
         ndvi_array (np.ndarray | None, optional): Processed NDVI array if running in
             'ndvi' mode; otherwise None. Defaults to None.
 
@@ -105,24 +114,62 @@ def export_netcdf(
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    data_vars = {}
+    coords = {}
+
+    if latitudes is not None and longitudes is not None:
+        coords["latitude"] = (
+            ["y", "x"],
+            latitudes,
+            {"units": "degrees_north", "standard_name": "latitude"},
+        )
+        coords["longitude"] = (
+            ["y", "x"],
+            longitudes,
+            {"units": "degrees_east", "standard_name": "longitude"},
+        )
+
     if mode == "ndvi":
-        ds_out = xr.Dataset(
-            data_vars={"ndvi": (["y", "x"], ndvi_array)},
-            attrs={"description": "Sentinel-3 OLCI Surface NDVI", "sensor": "OLCI"},
+        if ndvi_array is None:
+            raise ValueError("NDVI mode requires a valid 'ndvi_array'.")
+
+        data_vars["ndvi"] = (
+            ["y", "x"],
+            ndvi_array.astype(np.float32),
+            {
+                "standard_name": "normalized_difference_vegetation_index",
+                "long_name": "Surface Normalized Difference Vegetation Index",
+                "units": "1",
+                "_FillValue": np.nan,
+                "valid_range": [-1.0, 1.0],
+            },
         )
     elif mode in ["rgb", "aerosol_rgb"]:
-        ds_out = xr.Dataset(
-            data_vars={
-                "red": (["y", "x"], corrected_arrays[f"band_{target_bands[0]}"]),
-                "green": (["y", "x"], corrected_arrays[f"band_{target_bands[1]}"]),
-                "blue": (["y", "x"], corrected_arrays[f"band_{target_bands[2]}"]),
-            },
-            attrs={
-                "description": f"Sentinel-3 OLCI Surface Composite ({mode})",
-                "sensor": "OLCI",
-            },
-        )
+        channel_names = ["red", "green", "blue"]
+        for idx, band_num in enumerate(target_bands[:3]):
+            data_vars[channel_names[idx]] = (
+                ["y", "x"],
+                corrected_arrays[f"band_{band_num}"].astype(np.float32),
+                {
+                    "standard_name": "surface_bidirectional_reflectance",
+                    "long_name": f"Bottom-of-Rayleigh Surface Reflectance Band {band_num}",
+                    "units": "1",
+                    "_FillValue": np.nan,
+                    "valid_range": [0.0, 1.0],
+                },
+            )
     else:
         raise ValueError(f"Unsupported export mode: '{mode}'")
 
-    ds_out.to_netcdf(output_path)
+    global_attrs = {
+        "Conventions": "CF-1.8",
+        "title": f"Sentinel-3 OLCI Level-2 Surface Reflectance ({mode.upper()})",
+        "source": "Sentinel-3 OLCI L1B Radiance",
+        "processing_level": "Level-2",
+        "comment": "Rayleigh scattering and ozone gaseous absorption corrected",
+    }
+
+    ds_out = xr.Dataset(data_vars=data_vars, coords=coords, attrs=global_attrs)
+    encoding = {var: {"zlib": True, "complevel": 4} for var in ds_out.variables}
+
+    ds_out.to_netcdf(output_path, encoding=encoding)
