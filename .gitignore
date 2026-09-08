@@ -35,3 +35,6 @@ env/
 Thumbs.db
 .vscode/
 .idea/
+
+# Uneccesary files
+view_xr.py
