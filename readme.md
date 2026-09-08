@@ -15,7 +15,7 @@ Showing true color with aerosol correction (left) and the NDVI visualization (ri
 * **Orbital Normalization:** Dynamically calculates the Day of the Year from satellite metadata to apply Earth-Sun inverse-square solar flux corrections.
 * **Spatial Interpolation:** Upscales coarse tie-point geometry and meteorological grids to full sensor resolution using bivariate spline interpolation 
 * **Aerosol Correction:** Implements a dynamic Near-Infrared (NIR) Dark Object Subtraction (DOS) for quick corrections.
-* **Ozone Absorption Correction** Uses ozone data to compute and apply gaseous transmittance corrections
+* **Ozone Absorption Correction:** Uses ozone data to compute and apply gaseous transmittance corrections
 * **Cloud Masking:** Automated masking module to detect clouds and mask pixels using configurable NDVI and near-infrared brightness thresholds.
 * **.nc Export:** Outputs both  `.png` composites and analysis-ready `.nc` (NetCDF4) datasets preserving full precision.
 
