@@ -1,5 +1,37 @@
-*.SEN3/
+# Bytecode and runtime caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Packaging and build artifacts 
+*.egg-info/
+src/*.egg-info/
+build/
+dist/
+.eggs/
+
+# Tooling and linter caches 
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# Project output artifacts
+outputs/
 *.nc
 *.png
-__pycache__/
+
+# Satellite / Data folders
+*.SEN3/
+*.SAFE/
+*.zip
+
+# Environments
+.venv/
+venv/
+env/
+
+# OS and Editor metadata
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -12,7 +12,7 @@ Showing true color with aerosol correction (left) and the NDVI visualization (ri
 
 ## Key Features & Physics Implemented
 * **Atmospheric Scattering (Rayleigh):** Calculates real-time Rayleigh optical thickness using the Single-Scattering Approximation (SSA)
-* **Orbital Normalization:** Dynamically calculates the Julian day from satellite metadata to apply Earth-Sun inverse-square solar flux corrections.
+* **Orbital Normalization:** Dynamically calculates the Day of the Year from satellite metadata to apply Earth-Sun inverse-square solar flux corrections.
 * **Spatial Interpolation:** Upscales coarse tie-point geometry and meteorological grids to full sensor resolution using bivariate spline interpolation 
 * **Aerosol Correction:** Implements a dynamic Near-Infrared (NIR) Dark Object Subtraction (DOS) for quick corrections.
 * **Ozone Absorption Correction** Uses ozone data to compute and apply gaseous transmittance corrections
@@ -24,9 +24,9 @@ Showing true color with aerosol correction (left) and the NDVI visualization (ri
 Clone the repository and install the required dependencies:
 
 ```bash
-git clone git@github.com:drice987/sentinel-level2-processor.git
-cd sentinel-level2-processor
-pip install -r requirements.txt
+git clone https://github.com/drice987/sentinel3_l2_processor.git
+cd sentinel3_l2_processor
+pip install -e .
 ```
 
 ## Usage
@@ -39,7 +39,7 @@ input:
   folder_path: "path/to/SEN3"
 
 processing:
-  mode: "rgb"  # Options: 'raw_rgb', 'rgb', 'aerosol_rgb', 'ndvi'
+  mode: "rgb"  # Options: 'rgb', 'aerosol_rgb', 'ndvi'
   rgb_bands: [7, 6, 4] # Corresponds to OLCI 620nm, 560nm, 490nm
   
   cloud_masking:
@@ -57,7 +57,11 @@ visualization:
 **2. Run the Processor**
 Execute the master script from the terminal:
 ```bash
-python sentinel3_l2_processor.py
+# Uses default config.yaml by default:
+s3-process
+
+# Or pass a custom configuration file:
+s3-process path/to/custom_config.yaml
 ```
 
 ## Processing Modes
