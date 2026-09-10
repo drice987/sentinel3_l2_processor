@@ -13,6 +13,7 @@ from .io import (
     export_netcdf,
     extract_band_properties,
     load_config,
+    load_coordinates,
     load_radiance_bands,
 )
 from .masking import compute_cloud_mask
@@ -73,6 +74,7 @@ def run_pipeline(config_path: Path) -> None:
     bands = extract_band_properties(folder_path, target_bands)
     ref_band_path = folder_path / bands[f"band_{target_bands[-1]}"]["file"]
     sza, oza, ozone, u_factor = load_and_upscale_geometries(folder_path, ref_band_path)
+    latitudes, longitudes = load_coordinates(folder_path)
 
     cloud_mask = None
     if cloud_cfg.get("enabled", False):
@@ -96,13 +98,13 @@ def run_pipeline(config_path: Path) -> None:
     if mode == "ndvi":
         product_data = compute_ndvi(corrected_refl["band_17"], corrected_refl["band_8"])
         export_netcdf(
-            mode, output_nc, target_bands, corrected_refl, ndvi_array=product_data
+            mode, output_nc, target_bands, corrected_refl, latitudes=latitudes, longitudes=longitudes, ndvi_array=product_data
         )
     else:
         product_data = generate_rgb_composite(
             corrected_refl, target_bands, mode=mode, gamma=gamma
         )
-        export_netcdf(mode, output_nc, target_bands, corrected_refl, ndvi_array=None)
+        export_netcdf(mode, output_nc, target_bands, corrected_refl, latitudes=latitudes, longitudes=longitudes, ndvi_array=None)
 
     logger.info("Exported NetCDF to %s", output_nc)
 

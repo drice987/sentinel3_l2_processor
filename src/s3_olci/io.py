@@ -173,3 +173,11 @@ def export_netcdf(
     encoding = {var: {"zlib": True, "complevel": 4} for var in ds_out.variables}
 
     ds_out.to_netcdf(output_path, encoding=encoding)
+
+def load_coordinates(folder_path: Path) -> tuple[np.ndarray, np.ndarray]:
+    """Extract full-resolution latitude and longitude coordinate grids."""
+    coords_file = folder_path / "geo_coordinates.nc"
+    with xr.open_dataset(coords_file) as ds:
+        latitudes = ds["latitude"].values.astype(np.float32)
+        longitudes = ds["longitude"].values.astype(np.float32)
+    return latitudes, longitudes
